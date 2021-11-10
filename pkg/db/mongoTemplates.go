@@ -2,9 +2,7 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"log"
-
 	"simplemailsender/pkg/models"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -20,19 +18,22 @@ type MongoDBUserDAO struct {
 func NewMongoDBUserDAO(ctx context.Context, db *mongo.Database) *MongoDBUserDAO {
 	return &MongoDBUserDAO{db: db, userCollection: "templates"}
 }
-func (dao *MongoDBUserDAO) PrintTemplates() (error, []models.Template) {
+func (dao *MongoDBUserDAO) PrintTemplates() {
+
 	collection := dao.db.Collection("templates")
 
 	var mails []models.Template
 	var mail models.Template
 	cur, err := collection.Find(context.TODO(), bson.M{})
-	defer cur.Close(context.TODO())
+
 	for cur.Next(context.TODO()) {
 		err = cur.Decode(&mail)
 		if err != nil {
-			return fmt.Errorf("errr", err), mails
+
+			panic(err)
+			return
 		}
-		log.Println(mail.Message)
+
 		if mail.Status == "pending" {
 			mails = append(mails, mail)
 		}
@@ -43,12 +44,16 @@ func (dao *MongoDBUserDAO) PrintTemplates() (error, []models.Template) {
 		_, err = collection.UpdateOne(context.TODO(), bson.D{{"status", bson.D{{"$eq", "pending"}}}}, bson.D{{"$set", bson.D{{"status", "done"}}}})
 		if err != nil {
 			panic(err)
-			return fmt.Errorf("errrup", err), mails
+
 		}
 
 	}
+	for _, Mail := range mails {
+		log.Println(Mail)
+		log.Println(Mail.Message)
+		log.Println(Mail.Status)
+	}
 
-	return nil, mails
 }
 
 //func (dao *MongoDBUserDAO) GetByUsername(ctx context.Context, username string) (*models.User, error) {
