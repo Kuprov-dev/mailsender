@@ -42,8 +42,3 @@ func ConnectMongoDB(ctx context.Context) {
 func GetMongoDBConnection() *mongo.Database {
 	return mongoDBConnection
 }
-
-//func Close(ctx context.Context) error {
-//	err:=mongoDBConnection.Close(ctx)
-//	return mongoDBConnection.Disconnect(ctx)
-//}

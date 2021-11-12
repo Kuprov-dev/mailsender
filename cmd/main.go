@@ -7,14 +7,13 @@ import (
 	"os/signal"
 	"simplemailsender/pkg/db"
 	"syscall"
+	"time"
 )
 
 func main() {
 
 	db.ConnectMongoDB(context.TODO())
-	//log := logrus.New()
-	//log.SetFormatter(&logrus.JSONFormatter{})
-	//logEntry := logrus.NewEntry(log)
+
 	userDAO := db.NewMongoDBUserDAO(context.TODO(), db.GetMongoDBConnection())
 	fmt.Println(userDAO)
 
@@ -26,28 +25,13 @@ func main() {
 		syscall.SIGQUIT,
 	)
 	go func() {
-		for {
+		for range time.Tick(time.Second * 10) {
 			userDAO.PrintTemplates()
 
 		}
 	}()
+
 	<-stop
 	fmt.Println("kek")
-
-	//handler := logging.LoggingMiddleware(logEntry)(r)
-	//s := &http.Server{
-	//	Addr:    ":8081",
-	//	Handler: handler,
-	//}
-	//defer s.Close()
-	//go func() {
-	//	fmt.Println("Starting server")
-	//	if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-	//		log.Println(err)
-	//		return
-	//	}
-	//}()
-	//
-	//<-stop
 
 }
