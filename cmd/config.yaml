@@ -20,7 +20,7 @@ auth_service:
   retry_delay: 200
 
 # Database credentials
-#TODO please help with depoyment
+#TODO please help with depoyment or wait
 database:
   # host: "mongodb://mongodb-service"
   # port: 27017
