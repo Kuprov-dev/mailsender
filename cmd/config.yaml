@@ -1,0 +1,37 @@
+# Server configurations
+server:
+  host: "0.0.0.0"
+  port: 8000
+  prefix: "profile"
+  jwt_access_secret: "epstein didnt kill himself"
+  jwt_refresh_secret: "There was no Cold War in reality, it was just a cover for two allies to build super advanced militaries to prepare for alien invasion"
+
+# Auth Service
+auth_service:
+  # host: "http://192.168.49.2"
+  # port: 30002
+  host: "http://0.0.0.0"
+  port: 8001
+  # host: "http://auth-service"
+  # port: 8001
+  profile_details: "me"
+  token_validation: "me"
+  retries: 3
+  retry_delay: 200
+
+# Database credentials
+#TODO please help with depoyment
+database:
+  # host: "mongodb://mongodb-service"
+  # port: 27017
+  host: "mongodb://localhost"
+  port: 27017
+  db_name: "mydb"
+  user: "user"
+  password: "password"
+  users:
+  # "f7630cc2-9806-4a8e-8fab-c0d9a0464e63":
+  #   uuid: "f7630cc2-9806-4a8e-8fab-c0d9a0464e63"
+  #   username: "user1"
+  #   receivers:
+  #     - "test@mail.ru"

@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"simplemailsender/pkg/conf"
 	"simplemailsender/pkg/db"
 	"syscall"
 	"time"
 )
 
 func main() {
+	conf := conf.New()
+	db.ConnectMongoDB(context.TODO(), conf)
 
-	db.ConnectMongoDB(context.TODO())
-
-	userDAO := db.NewMongoDBUserDAO(context.TODO(), db.GetMongoDBConnection())
-	fmt.Println(userDAO)
+	printDAO := db.NewMongoDBTemp(context.TODO(), db.GetMongoDBConnection())
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop,
@@ -26,7 +26,7 @@ func main() {
 	)
 	go func() {
 		for range time.Tick(time.Second * 10) {
-			userDAO.PrintTemplates()
+			printDAO.PrintTemplates()
 
 		}
 	}()

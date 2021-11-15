@@ -10,15 +10,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type MongoDBUserDAO struct {
+type MongoDBTempDAO struct {
 	db             *mongo.Database
 	userCollection string
 }
 
-func NewMongoDBUserDAO(ctx context.Context, db *mongo.Database) *MongoDBUserDAO {
-	return &MongoDBUserDAO{db: db, userCollection: "templates"}
+func NewMongoDBTemp(ctx context.Context, db *mongo.Database) *MongoDBTempDAO {
+	return &MongoDBTempDAO{db: db, userCollection: "templates"}
 }
-func (dao *MongoDBUserDAO) PrintTemplates() {
+func (dao *MongoDBTempDAO) PrintTemplates() {
 
 	collection := dao.db.Collection("templates")
 
