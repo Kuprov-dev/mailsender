@@ -51,11 +51,13 @@ kafka-console-consumer.sh --topic quickstart-events --from-beginning --bootstrap
 Создадим топик для тестирования:
 
 ```bash
-docker exec simplemailsender_kafka_1 kafka-topics.sh --create --topic test-topic --bootstrap-server :9092
+docker exec simplemailsender_kafka_1 kafka-topics.sh --create --topic test-topic --bootstrap-server :9092 --partitions 10 --replicati
+on-factor 1
+
 ```
 
 Запустим тест:
-
+Я писал тесты через Goland 
 ```bash
 KAFKA_BROKER=127.0.0.1:9093 go test ./... -tags=integration_tests
 ```
@@ -63,7 +65,7 @@ KAFKA_BROKER=127.0.0.1:9093 go test ./... -tags=integration_tests
 Прочтем сообщения из топика. Подключимся к контейнеру:
 
 ```bash
-docker exec -it kafka_kafka_1 /bin/bash
+docker exec -it simplemailsender_kafka_1 /bin/bash
 ```
 
 и выполним:
