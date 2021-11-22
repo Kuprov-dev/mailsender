@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"context"
+	"encoding/json"
 	"simplemailsender/pkg/models"
 	"testing"
 )
@@ -24,12 +25,18 @@ func TestGetMessage(t *testing.T) {
 		return
 	}
 	t.Run("commit before processing", func(t *testing.T) {
+		check := models.TemplateMQTest{"6136dc8b-26c8-4de0-81e9-10c5a2d182921", "pending"}
+		data, errEnc := json.Marshal(check)
+		if errEnc != nil {
+			t.Errorf("failed to send messages: %v", errEnc)
+			return
+		}
 		if err := kp.SendMessages(
 			context.Background(),
 			[]*models.Message{
 				{
-					Key:   []byte("commit-before-processing-test"),       //TODO normal key
-					Value: []byte("commit-before-processing-test-value"), //TODO ADD json
+					Key:   []byte("commit-before-processing-test"), //TODO normal key
+					Value: data,                                    //TODO ADD json
 				},
 			},
 			0,
@@ -51,12 +58,29 @@ func TestGetMessage(t *testing.T) {
 	})
 
 	t.Run("commit after processing", func(t *testing.T) {
+		msg, err := k.GetMessage(context.Background())
+		if err != nil {
+			t.Errorf("failed to get message: %v", err)
+			return
+		}
+		var res models.TemplateMQTest
+		errjson := json.Unmarshal(msg.Value, &res)
+		if errjson != nil {
+			t.Errorf("failed to get message: %v", errjson)
+			return
+		}
+		res.Status = "done"
+		data, errEnc := json.Marshal(res)
+		if errEnc != nil {
+			t.Errorf("failed to send messages: %v", errEnc)
+			return
+		}
 		if err := kp.SendMessages(
 			context.Background(),
 			[]*models.Message{
 				{
 					Key:   []byte("commit-after-processing-test"),
-					Value: []byte("commit-after-processing-test-value"),
+					Value: data,
 				},
 			},
 			1,

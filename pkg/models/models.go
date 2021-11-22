@@ -13,3 +13,15 @@ type Message struct {
 	Key   []byte
 	Value []byte
 }
+type TemplateMQ struct {
+	UUID         string   `json:"_id,omitempty"`
+	Status       string   `json:"status"`
+	TemplateUUID string   `json:"template_uuid"`
+	Params       []string `json:"params"`
+	Receivers    []string `json:"receivers"`
+	Message      string   `json:"message"`
+}
+type TemplateMQTest struct {
+	UUID   string `json:"_id,omitempty"`
+	Status string `json:"status"`
+}
