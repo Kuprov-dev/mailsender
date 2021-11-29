@@ -23,7 +23,7 @@ func main() {
 func run() error {
 	brokers := []string{"127.0.0.1:9093"}
 	const (
-		topic   = "my-topic"
+		topic   = "new-test-test-topic"
 		groupID = "my-group"
 	)
 	producer, err := messageQueue.NewProducer(brokers, topic)
@@ -36,16 +36,17 @@ func run() error {
 	}
 	responsesMQ := make(chan models.TemplateMQ)
 	wg := &sync.WaitGroup{}
-
-	ctx, cancelCtx := context.WithCancel(context.Background())
+	defer close(responsesMQ)
+	ctx, cancelCtx := context.WithCancel(context.TODO())
 	defer cancelCtx()
-
-	wg.Add(1)
-	runInterruptor(wg, cancelCtx)
-	wg.Add(1)
-	go produce(ctx, wg, producer, responsesMQ)
-	wg.Add(1)
-	go consume(ctx, wg, consumer, responsesMQ)
+	for range time.Tick(time.Second * 2) {
+		wg.Add(1)
+		runInterruptor(wg, cancelCtx)
+		wg.Add(1)
+		go consume(ctx, wg, consumer, responsesMQ)
+		wg.Add(1)
+		go produce(ctx, wg, producer, responsesMQ)
+	}
 
 	wg.Wait()
 	log.Println("Done!")
@@ -54,6 +55,7 @@ func run() error {
 
 func produce(ctx context.Context, wg *sync.WaitGroup, producer messageQueue.Producer, ch chan models.TemplateMQ) error {
 	defer wg.Done()
+	var update models.TemplateMQ
 	request := <-ch
 	ticker := time.NewTicker(time.Second * 1)
 	defer ticker.Stop()
@@ -61,20 +63,30 @@ func produce(ctx context.Context, wg *sync.WaitGroup, producer messageQueue.Prod
 	for {
 		select {
 		case <-ticker.C:
-			request.Status = "done"
-			data, errEnc := json.Marshal(request)
-			if errEnc != nil {
-				return fmt.Errorf("wron smth %w", errEnc)
+			if request.Status == "pending" {
+				request.Status = "done"
+				log.Printf("send")
+
+				data, errEnc := json.Marshal(request)
+				if errEnc != nil {
+					return fmt.Errorf("wron smth %w", errEnc)
+				}
+				msg := &models.Message{
+					Value: data,
+				}
+				log.Printf("sending message %s", msg.Value)
+				if err := producer.SendMessages(ctx, []*models.Message{msg}, 1); err != nil {
+					log.Printf("failed to send message #%d: %v", msgCount, err)
+					continue
+				}
+
+				msgCount++
+				ch <- update
+				wg.Wait()
+			} else {
+				log.Println("wrong msg")
+				wg.Wait()
 			}
-			msg := &models.Message{
-				Value: data,
-			}
-			log.Printf("sending message %s", msg.Value)
-			if err := producer.SendMessages(ctx, []*models.Message{msg}, 0); err != nil {
-				log.Printf("failed to send message #%d: %v", msgCount, err)
-				continue
-			}
-			msgCount++
 		case <-ctx.Done():
 			return nil
 		}
@@ -89,24 +101,20 @@ func consume(ctx context.Context, wg *sync.WaitGroup, consumer messageQueue.Cons
 	for {
 		select {
 		case <-ticker.C:
-			mes, err := consumer.ReadAndCommit(ctx, func(m *models.Message) error {
-				log.Printf("message received: %s: %s", string(m.Key), string(m.Value))
-
-				return nil
-			})
+			mes, err := consumer.GetMessage(ctx)
 			if err != nil {
-				log.Printf("failed to get new message: %v", err)
-				continue
-
+				return fmt.Errorf("not valed %w", err)
 			}
 			errjson := json.Unmarshal(mes.Value, &request)
 			if errjson != nil {
 				return fmt.Errorf("not valed %w", errjson)
 			}
+			log.Println(request)
 			ch <- request
-
+			wg.Wait()
 		case <-ctx.Done():
 			return nil
+
 		}
 	}
 }

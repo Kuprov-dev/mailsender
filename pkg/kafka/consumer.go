@@ -34,6 +34,7 @@ func NewConsumer(brokers []string, topic string, groupID string) (*Consumer, err
 
 func (c *Consumer) GetMessage(ctx context.Context) (*models.Message, error) {
 	kafkaMsg, err := c.Reader.ReadMessage(ctx)
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to read message: %w", err)
 	}
