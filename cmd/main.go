@@ -39,25 +39,29 @@ func run() error {
 	defer close(responsesMQ)
 	ctx, cancelCtx := context.WithCancel(context.TODO())
 	defer cancelCtx()
-	for range time.Tick(time.Second * 2) {
-		wg.Add(1)
-		runInterruptor(wg, cancelCtx)
-		wg.Add(1)
-		go consume(ctx, wg, consumer, responsesMQ)
-		wg.Add(1)
-		go produce(ctx, wg, producer, responsesMQ)
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("Done!")
+			return nil
+		case <-time.After(1 * time.Second):
+			wg.Add(1)
+			runInterruptor(wg, cancelCtx)
+			wg.Add(1)
+			go consume(ctx, wg, consumer, responsesMQ)
+
+			wg.Add(1)
+			go produce(ctx, wg, producer, responsesMQ)
+		}
 	}
 
-	wg.Wait()
-	log.Println("Done!")
-	return nil
 }
 
 func produce(ctx context.Context, wg *sync.WaitGroup, producer messageQueue.Producer, ch chan models.TemplateMQ) error {
 	defer wg.Done()
 	var update models.TemplateMQ
 	request := <-ch
-	ticker := time.NewTicker(time.Second * 1)
+	ticker := time.NewTicker(time.Millisecond * 500)
 	defer ticker.Stop()
 	msgCount := 0
 	for {
@@ -86,6 +90,7 @@ func produce(ctx context.Context, wg *sync.WaitGroup, producer messageQueue.Prod
 			} else {
 				log.Println("wrong msg")
 				wg.Wait()
+				return nil
 			}
 		case <-ctx.Done():
 			return nil
