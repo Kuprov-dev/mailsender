@@ -23,7 +23,7 @@ func main() {
 func run() error {
 	brokers := []string{"127.0.0.1:9093"}
 	const (
-		topic   = "new-test-test-topic"
+		topic   = "kek"
 		groupID = "my-group"
 	)
 	producer, err := messageQueue.NewProducer(brokers, topic)
@@ -35,29 +35,31 @@ func run() error {
 		return fmt.Errorf("failed to create a new consumer: %w", err)
 	}
 	responsesMQ := make(chan models.TemplateMQ)
+	double := make(chan bool)
 	wg := &sync.WaitGroup{}
 	defer close(responsesMQ)
+	defer close(double)
 	ctx, cancelCtx := context.WithCancel(context.TODO())
 	defer cancelCtx()
+	var m sync.Mutex
 	for {
 		select {
 		case <-ctx.Done():
 			log.Println("Done!")
 			return nil
 		case <-time.After(1 * time.Second):
-			wg.Add(1)
+			wg.Add(3)
 			runInterruptor(wg, cancelCtx)
-			wg.Add(1)
-			go consume(ctx, wg, consumer, responsesMQ)
 
-			wg.Add(1)
-			go produce(ctx, wg, producer, responsesMQ)
+			go consume(ctx, wg, consumer, responsesMQ, &m)
+
+			go produce(ctx, wg, producer, responsesMQ, &m)
 		}
 	}
 
 }
 
-func produce(ctx context.Context, wg *sync.WaitGroup, producer messageQueue.Producer, ch chan models.TemplateMQ) error {
+func produce(ctx context.Context, wg *sync.WaitGroup, producer messageQueue.Producer, ch chan models.TemplateMQ, mt *sync.Mutex) error {
 	defer wg.Done()
 	var update models.TemplateMQ
 	request := <-ch
@@ -67,6 +69,7 @@ func produce(ctx context.Context, wg *sync.WaitGroup, producer messageQueue.Prod
 	for {
 		select {
 		case <-ticker.C:
+			//mt.Lock()
 			if request.Status == "pending" {
 				request.Status = "done"
 				log.Printf("send")
@@ -86,19 +89,16 @@ func produce(ctx context.Context, wg *sync.WaitGroup, producer messageQueue.Prod
 
 				msgCount++
 				ch <- update
-				wg.Wait()
-			} else {
-				log.Println("wrong msg")
-				wg.Wait()
-				return nil
+
 			}
+			//mt.Unlock()
 		case <-ctx.Done():
 			return nil
 		}
 	}
 }
 
-func consume(ctx context.Context, wg *sync.WaitGroup, consumer messageQueue.Consumer, ch chan models.TemplateMQ) error {
+func consume(ctx context.Context, wg *sync.WaitGroup, consumer messageQueue.Consumer, ch chan models.TemplateMQ, mt *sync.Mutex) error {
 	defer wg.Done()
 	var request models.TemplateMQ
 	ticker := time.NewTicker(time.Millisecond * 500)
@@ -106,6 +106,7 @@ func consume(ctx context.Context, wg *sync.WaitGroup, consumer messageQueue.Cons
 	for {
 		select {
 		case <-ticker.C:
+			mt.Lock()
 			mes, err := consumer.GetMessage(ctx)
 			if err != nil {
 				return fmt.Errorf("not valed %w", err)
@@ -116,7 +117,7 @@ func consume(ctx context.Context, wg *sync.WaitGroup, consumer messageQueue.Cons
 			}
 			log.Println(request)
 			ch <- request
-			wg.Wait()
+			mt.Unlock()
 		case <-ctx.Done():
 			return nil
 
